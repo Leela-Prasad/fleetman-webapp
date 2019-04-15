@@ -182,5 +182,5 @@
         region: "{{ region }}"
         resource: "{{ new_server.instances[0].id  }}"
         tags:
-          Deploye: Blue
+          Deploy: Blue
         state: absent
