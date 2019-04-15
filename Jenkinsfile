@@ -1,9 +1,9 @@
 node {
    stage('Preparation') { 
-      git 'https://github.com/Leela-Prasad/fleetman-position-tracker'
+      git 'https://github.com/Leela-Prasad/fleetman-webapp'
    }
    stage('Build') {
-        sh "mvn package"
+        sh "mvn clean package"
    }
    stage('Results') {
       junit '**/target/surefire-reports/TEST-*.xml'
