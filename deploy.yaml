@@ -6,8 +6,18 @@
     instance_type: t2.nano
     base_image_name: ami-0889b8a448de4fc44
     number_of_instances_to_create: 1
+    eip: 52.66.114.147
 
   tasks:
+    - name: Variables for later plays
+      # Difference between variable and fact
+      # variable is visible within a play
+      # but fact is visible across plays
+      set_fact:
+        region: "{{ region }}"
+        eip: "{{ eip }}"
+
+
     - name: Firewall Rules
       ec2_group:
         name: "{{ webapp_security_group_name }}"
@@ -43,8 +53,10 @@
         exact_count: "{{ number_of_instances_to_create }}"
         instance_tags:
           Name: webapp
+          Deploy: Blue
         count_tag:
           Name: webapp
+          Deploy: Blue
       # Register started instances to ec2 variable
       register: ec2
 
@@ -104,3 +116,71 @@
         host: localhost
         port: 8080
         state: started
+
+
+- hosts: localhost
+
+  tasks:
+
+    - name: Gather Facts about Blue Server
+      # ec2_remote_facts will query instance details
+      ec2_remote_facts:
+        filters:
+          "tag:Deploy": Blue
+          "tag:Name": webapp
+          instance-state-name: running
+        region: "{{ region }}"
+      register: new_server
+
+    - name: Gather Facts about Green Server
+      ec2_remote_facts:
+        filters:
+          "tag:Deploy": Green
+          "tag:Name": webapp
+          instance-state-name: running
+        region: "{{ region }}"
+      register: old_server
+
+    - name: Deallocate EIP from Old Green Server
+      # ec2_eip is used to allocate/deallocate Elastic IPs
+      ec2_eip:
+        device_id: "{{ old_server.instances[0].id }}"
+        ip: "{{ eip }}"
+        state: absent
+        region: "{{ region }}"
+      when: old_server.instance[0].id is defined
+
+    - name: Allocate EIP to New Blue Server
+      ec2_eip:
+        device_id: "{{ new_server.instances[0].id }}"
+        ip: "{{ eip }}"
+        region: "{{ region }}"
+
+    - name: Terminate Existing Old Green Server
+      ec2:
+        exact_count: 0
+        instance_tags:
+          Deploy: Green
+          Name: webapp
+        count_tag:
+          Name: webapp
+          Deploy: Green
+        region: "{{ region }}"
+        image: notneeded
+
+    - name: All done, Set new Server to Green Tag
+      # ec2_tag is used to tag instances.
+      ec2_tag:
+        region: "{{ region }}"
+        resource: "{{ new_server.instances[0].id  }}"
+        tags:
+          Deploy: Green
+        state: present
+
+    - name: Remove Blue Tag
+      ec2_tag:
+        region: "{{ region }}"
+        resource: "{{ new_server.instances[0].id  }}"
+        tags:
+          Deploye: Blue
+        state: absent
