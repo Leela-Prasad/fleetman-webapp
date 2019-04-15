@@ -148,7 +148,7 @@
         ip: "{{ eip }}"
         state: absent
         region: "{{ region }}"
-      when: old_server.instance[0].id is defined
+      when: old_server.instances[0].id is defined
 
     - name: Allocate EIP to New Blue Server
       ec2_eip:
