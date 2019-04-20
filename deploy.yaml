@@ -6,7 +6,7 @@
     instance_type: t2.nano
     base_image_name: ami-0889b8a448de4fc44
     number_of_instances_to_create: 1
-    eip: 52.66.114.147
+    eip: 13.127.144.243
 
   tasks:
     - name: Variables for later plays
